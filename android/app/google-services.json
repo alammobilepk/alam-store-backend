@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "238993311824",
+    "project_id": "electronic-dukan-6952d",
+    "storage_bucket": "electronic-dukan-6952d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:238993311824:android:a572d91a7477d48451e955",
+        "android_client_info": {
+          "package_name": "com.example.alam_store"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "238993311824-flucrl6v07qkeo7pgtn2pfr7gmt3g0af.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.alam_store",
+            "certificate_hash": "bb7588034fc8cd229c97d97a16c704e3d57577f3"
+          }
+        },
+        {
+          "client_id": "238993311824-aj3be2vp9kio1vv4icsdnnkt0fb5bee6.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAqZ4YJ3XTZTDulhxy3Yu7sC3QgLZ-bDMk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "238993311824-aj3be2vp9kio1vv4icsdnnkt0fb5bee6.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "238993311824-6a2r8ekpai3lnsa8jb9egi8qg4p871q9.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.alamStore"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

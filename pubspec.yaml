@@ -1,0 +1,42 @@
+name: electronic_dukaan
+description: "A high-performance e-commerce and job marketplace platform by Alam Enterprises."
+
+version: 1.0.0+1
+publish_to: 'none'
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  google_sign_in: ^6.2.1
+  font_awesome_flutter: ^10.7.0 # Professional icons ke liye
+  cloud_firestore: ^5.0.2
+  firebase_storage: ^12.0.1  # Maine isko update kar diya hai match karne ke liye
+  image_picker: ^1.0.7
+  cached_network_image: ^3.3.1
+  http: ^1.6.0  # Backend se baat karne ke liye
+  provider: ^6.1.1
+  firebase_core: ^3.1.1
+  firebase_auth: ^5.1.1
+  supabase_flutter: ^2.0.0
+  # --- UI & DESIGN ---
+  cupertino_icons: ^1.0.8
+  google_fonts: ^6.2.1
+
+  # --- MULTIMEDIA & UTILS ---
+  video_player: ^2.11.1
+  shared_preferences: ^2.5.5
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    # Agar poora folder register karna ho to sirf ye likhte hain:
+    # - assets/images/
