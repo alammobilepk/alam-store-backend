@@ -1,0 +1,9 @@
+node_modules
+.dart_tool
+build
+android
+ios
+windows
+linux
+macos
+.gradle
