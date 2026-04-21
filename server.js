@@ -15,45 +15,45 @@ app.use(helmet());
 app.use(express.json());
 app.use(cors());
 
-// --- STEP 2: SUPABASE & ENV VALIDATION ---
-// Agar Dashboard se nahi mil raha, toh yahan apna URL/KEY paste kar sakte hain (Optional)
+// --- CONFIGURATION ---
+const JWT_SECRET = process.env.JWT_SECRET || 'ALAM_SECURE_2026_ULTRA_KEY';
+
+// --- SUPABASE INITIALIZATION ---
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_KEY;
 
 let supabase;
-
-if (!SUPABASE_URL || !SUPABASE_KEY) {
-    console.error("❌ CRITICAL ERROR: Supabase Environment Variables are missing!");
+if (SUPABASE_URL && SUPABASE_KEY) {
+    supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 } else {
-    try {
-        supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-        console.log("✅ Supabase Client Initialized");
-    } catch (err) {
-        console.error("❌ Supabase Init Error:", err.message);
-    }
+    console.error("❌ CRITICAL: Supabase credentials missing!");
 }
 
-// --- MAIL CONFIG ---
+// --- MAIL CONFIG (Optimized for Vercel/Serverless) ---
 const transporter = nodemailer.createTransport({
     service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true,
+    pool: true, // Connection pooling for serverless
     auth: { 
         user: process.env.GMAIL_USER, 
         pass: process.env.GMAIL_PASS 
-    }
+    },
+    // Serverless timeout issues fix
+    connectionTimeout: 10000, 
+    greetingTimeout: 5000,
+    socketTimeout: 15000
 });
 
 // --- ROUTES ---
 
-// 1. HEALTH CHECK (Is se pata chalega ke Vercel ne variables uthaye ya nahi)
+// 1. HEALTH CHECK
 app.get('/api/health', (req, res) => {
     res.status(200).json({ 
         status: 'Live', 
-        database_ready: !!supabase,
-        checks: {
-            url_present: !!SUPABASE_URL,
-            key_present: !!SUPABASE_KEY,
-            mail_ready: !!process.env.GMAIL_USER
-        },
+        database: !!supabase,
+        mail_config: !!process.env.GMAIL_USER,
         timestamp: new Date().toISOString()
     });
 });
@@ -65,32 +65,44 @@ app.post('/api/auth/send-otp', async (req, res) => {
 
     const otp = crypto.randomInt(100000, 999999).toString();
     
+    const mailOptions = {
+        from: `"ALAM STORE" <${process.env.GMAIL_USER}>`,
+        to: email,
+        subject: 'Verification Code - ALAM STORE',
+        html: `
+        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 30px; border: 1px solid #e0e0e0; border-radius: 12px; max-width: 500px; margin: auto;">
+            <div style="text-align: center; margin-bottom: 20px;">
+                <h1 style="color: #004AAD; margin: 0;">ALAM STORE</h1>
+                <p style="color: #666;">Official Verification Service</p>
+            </div>
+            <hr style="border: 0; border-top: 1px solid #eee;" />
+            <p style="font-size: 16px; color: #333;">Aapka security code ye hai:</p>
+            <div style="background: #f9f9f9; padding: 20px; text-align: center; border-radius: 8px; margin: 20px 0;">
+                <span style="font-size: 32px; font-weight: bold; color: #004AAD; letter-spacing: 8px;">${otp}</span>
+            </div>
+            <p style="font-size: 14px; color: #999; text-align: center;">Ye code 10 minutes mein expire ho jayega. Kisi se share na karein.</p>
+        </div>`
+    };
+
     try {
-        await transporter.sendMail({
-            from: `"ALAM STORE" <${process.env.GMAIL_USER}>`,
-            to: email,
-            subject: 'Verification Code - ALAM STORE',
-            html: `
-            <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-                <h2 style="color: #004AAD;">Verification Code</h2>
-                <p>Aapka registration code niche diya gaya hai:</p>
-                <h1 style="background: #f4f4f4; padding: 10px; text-align: center; letter-spacing: 5px;">${otp}</h1>
-                <p>Ye code 10 minutes tak valid hai.</p>
-            </div>`
-        });
+        await transporter.sendMail(mailOptions);
+        // Tip: For production, save this OTP in Supabase 'otp_verifications' table
         res.json({ success: true, message: "OTP sent successfully" }); 
     } catch (e) {
         console.error("Mail Error:", e.message);
-        res.status(500).json({ error: "Failed to send OTP. Check mail config." });
+        res.status(500).json({ 
+            error: "Email delivery failed", 
+            details: process.env.NODE_ENV === 'development' ? e.message : 'SMTP Config Error' 
+        });
     }
 });
 
 // 3. LOGIN
 app.post('/api/auth/login', async (req, res) => {
-    if (!supabase) return res.status(500).json({ error: "Database not connected" });
+    if (!supabase) return res.status(500).json({ error: "Database not ready" });
     
     const { email, password } = req.body;
-    if (!email || !password) return res.status(400).json({ error: "Missing fields" });
+    if (!email || !password) return res.status(400).json({ error: "Email and password are required" });
 
     try {
         const { data: user, error } = await supabase
@@ -99,21 +111,29 @@ app.post('/api/auth/login', async (req, res) => {
             .eq('email', email)
             .single();
 
-        if (error || !user) return res.status(404).json({ error: "User not found" });
+        if (error || !user) return res.status(404).json({ error: "Account not found" });
 
         const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) return res.status(401).json({ error: "Invalid password" });
+        if (!isMatch) return res.status(401).json({ error: "Invalid credentials" });
 
-        const token = jwt.sign({ id: user.id, email: user.email }, 'ALAM_SECURE_2026', { expiresIn: '90d' });
+        const token = jwt.sign(
+            { id: user.id, email: user.email }, 
+            JWT_SECRET, 
+            { expiresIn: '90d' }
+        );
         
-        // Security: Password delete kar dena response se pehle
         delete user.password;
-        
         res.json({ success: true, token, user });
     } catch (e) {
         console.error("Login Error:", e.message);
-        res.status(500).json({ error: "Server error during login" });
+        res.status(500).json({ error: "Internal server error" });
     }
+});
+
+// --- GLOBAL ERROR HANDLER ---
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).json({ error: "Something went wrong on the server!" });
 });
 
 // --- VERCEL EXPORT ---
